@@ -3,18 +3,19 @@ import { env } from '../utils/env.js';
 
 export async function initMongoConnection() {
   try {
-    const user = env('MONGODB_USER');
-    const pwd = env('MONGODB_PASSWORD');
-    const url = env('MONGODB_URL');
-    const db = env('MONGODB_DB');
+    const connectionString = env('MONGODB_URI'); // Використовуйте один URI
+    if (!connectionString) {
+      throw new Error('MONGODB_URI is not defined in environment variables');
+    }
 
-    await mongoose.connect(
-      `mongodb+srv://${user}:${pwd}@${url}/${db}?retryWrites=true&w=majority`,
-    );
+    await mongoose.connect(connectionString, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
 
-    console.log('Mongo connection successfully established!');
+    console.log('MongoDB connection successfully established!');
   } catch (error) {
-    console.log('Error while setting up mongo connection', error);
+    console.error('Error while setting up mongo connection:', error.message);
     throw error;
   }
 }

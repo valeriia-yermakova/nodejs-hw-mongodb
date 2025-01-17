@@ -9,7 +9,7 @@ dotenv.config();
 
 const PORT = Number(env('PORT', '3000'));
 
-export function setupServer() {
+export async function setupServer() {
   const app = express();
 
   app.use(cors());
@@ -24,12 +24,20 @@ export function setupServer() {
   );
 
   app.get('/contacts', async (req, res) => {
-    const allContacts = await getAllContacts();
-    res.json({
-      status: 200,
-      message: 'Successfully found contacts!',
-      data: allContacts,
-    });
+    try {
+      const allContacts = await getAllContacts();
+      res.status(200).json({
+        status: 'success',
+        message: 'Successfully found contacts!',
+        data: allContacts,
+      });
+    } catch (error) {
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to fetch contacts',
+        error: error.message,
+      });
+    }
   });
 
   app.get('/contacts/:contactId', async (req, res) => {
@@ -38,38 +46,34 @@ export function setupServer() {
     try {
       const contact = await getContactById(contactId);
 
-      if (contact === null) {
-        res.status(404).json({
-          message: 'Contact not found',
-        });
-        return;
-      }
-      res.json({
-        status: 200,
-        message: `Successfully found contact with id ${contactId}!`,
+      res.status(200).json({
+        status: 'success',
+        message: `Successfully found contact with ID ${contactId}`,
         data: contact,
       });
     } catch (error) {
-      res.status(500).json({
-        message: 'Internal server error',
+      const status = error.message === 'Contact not found' ? 404 : 500;
+      res.status(status).json({
+        status: 'error',
+        message: error.message,
       });
-      console.error(error.message);
     }
   });
 
-  app.use('*', (req, res, next) => {
+  app.use('*', (req, res) => {
     res.status(404).json({
-      message: 'Not found',
+      status: 'error',
+      message: 'Not Found',
     });
-    next();
   });
 
-  app.use('*', (error, req, res, next) => {
+  app.use((error, req, res, next) => {
+    console.error('Error:', error.message);
     res.status(500).json({
+      status: 'error',
       message: 'Something went wrong',
       error: error.message,
     });
-    next();
   });
 
   app.listen(PORT, () => {
